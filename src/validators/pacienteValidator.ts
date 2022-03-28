@@ -9,7 +9,7 @@ export const validateCreatePaciente = [
     .isEmpty().withMessage('Campo número de identificación no puede estar vacio.')
     .bail(),
     check('codigoTipoIdentificacion')
-    .exists().withMessage('El campo código de identificación es requerido.')
+    .exists().withMessage('Campo código de tipo de identificación es requerido.')
     .isNumeric()
     .bail(),
     check('primerNombre')
@@ -39,6 +39,16 @@ export const validateCreatePaciente = [
 ]
 
 export const validateUpdatePaciente = [
+    check('primerNombre')
+    .exists().withMessage('El campo primer nombre es requerido.')
+    .not()
+    .isEmpty().withMessage('El campo primer nombre no puede estar vacio.')
+    .bail(),
+    check('primerApellido')
+    .exists().withMessage('El campo primer apellido es requerido.')
+    .not()
+    .isEmpty().withMessage('El campo primer apellido no puede estar vacio.')
+    .bail(),
     check('email')
     .not()
     .isEmpty()
@@ -47,6 +57,11 @@ export const validateUpdatePaciente = [
     check('email')
     .isEmail()
     .withMessage('El campo email no es válido.')
+    .bail(),
+    check('estado')
+    .exists().withMessage('El campo estado es requerido.')
+    .not()
+    .isEmpty().withMessage('El campo estado no puede estar vacio.')
     .bail(),
     validateResult
 ]

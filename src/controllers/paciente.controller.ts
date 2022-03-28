@@ -22,20 +22,32 @@ export const getPacientes = async (req: Request, res: Response, next: NextFuncti
     const perPage: number = parseInt(req.query.perPage as string) || 5;
 
     // Filtros
+    const filtro_permitido = ['nombreCompleto', 'numeroIdentificacion', 'email']
     const tipoFiltro: string = req.query.tipoFiltro as string || '';
     const valorFiltro: string = req.query.valorFiltro as string || '';
+
     const estado: string = req.query.estado as string || 'S';
+    var nuevo_estado: string = estado !== '' ? estado : 'S';
 
     try {
         const builder = getRepository(Paciente).createQueryBuilder('paciente')
             .leftJoinAndSelect('paciente.codigoTipoIdentificacion', 'tipoIdentificacion')
-            .where('paciente.estado = :estado', { estado: estado });
-    
-        if (tipoFiltro != '' && valorFiltro != ''){
+            .where('paciente.estado = :estado', { estado: nuevo_estado.toUpperCase() });
+        
+        if (tipoFiltro != '' && !filtro_permitido.includes(tipoFiltro))
+            return res.json({
+                code: 400,
+                success: true,
+                message: 'El campo tipo filtro no es válido.',
+                errorData: []
+            });
+
+        if (tipoFiltro != '' && valorFiltro != '')
             builder.andWhere(`paciente.${tipoFiltro} LIKE :tipoFiltro`, { tipoFiltro: `%${valorFiltro}%` });
-        }
-    
-        builder.skip((page - 1) * perPage).take(perPage);
+        
+        if (page > 1 && perPage > 1)
+            builder.skip((page - 1) * perPage).take(perPage);
+            
         const total = await builder.getCount();
         const pacientes = await builder.getMany();
     
@@ -123,7 +135,7 @@ export const getPaciente = async (req: Request, res: Response, next: NextFunctio
         return res.status(400).json({
             code: 400,
             success: false,
-            message: "El campo no es válido.",
+            message: "Paciente no encontrado.",
             errorData: []
         });
     } catch (error) {
@@ -161,7 +173,7 @@ export const updatePaciente = async (req: Request, res: Response, next: NextFunc
         return res.status(400).json({
             code: 400,
             success: false,
-            message: "El campo no es válido.",
+            message: "Paciente no encontrado.",
             errorData: []
         });
 
@@ -190,7 +202,7 @@ export const deletePaciente = async (req: Request, res: Response, next: NextFunc
         return res.status(400).json({
             code: 400,
             success: false,
-            message: "El campo no es válido.",
+            message: "Paciente no encontrado",
             errorData: []
         });
     } catch (error) {

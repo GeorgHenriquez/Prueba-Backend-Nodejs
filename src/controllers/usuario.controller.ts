@@ -22,10 +22,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                 token: token
             });
         } else {
-            return res.status(400).json({
-                code: 400,
+            return res.status(401).json({
+                code: 401,
                 success: false,
-                message: "Los campos no son válidos.",
+                message: "Las credenciales de autenticación no son válidas.",
                 errorData: [],
             });
         }
