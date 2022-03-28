@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { TipoIdentificacion } from './tipoIdentificacion';
 
 @Entity({ name: 'MGM_PACIENTES' })
@@ -34,15 +34,26 @@ export class Paciente {
     @Column({ name: "ESTADO" })
     estado: string;
 
-    @Column({ name: "FECHA_INGRESO" })
+    @Column({ name: "FECHA_INGRESO", type: "timestamp" })
     fechaIngreso: Date;
 
     @Column({ name: "USUARIO_INGRESO" })
     usuarioIngreso: string;
 
-    @Column({ name: "FECHA_MODIFICACION", default: null })
+    @Column({ name: "FECHA_MODIFICACION", type: "timestamp", default: null })
     fechaModificacion: Date;
 
     @Column({ name: "USUARIO_MODIFICACION", default: null })
     usuarioModificacion: string;
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    armarNombreCompleto() {
+        this.nombreCompleto = this.primerNombre + " " ;
+        if (this.segundoNombre)
+            this.nombreCompleto += this.segundoNombre + " ";
+        this.nombreCompleto += this.primerApellido + " ";
+        if (this.segundoApellido)
+            this.nombreCompleto += this.segundoApellido
+    }
 }

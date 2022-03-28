@@ -4,6 +4,17 @@ import { verify } from "jsonwebtoken";
 
 import { Paciente } from '../entities/paciente';
 
+const getDecodedToken = (req: Request, next: NextFunction) => {
+    if (req.headers && req.headers.authorization) {
+        var authorization = req.headers.authorization.split(' ')[1], decoded;
+        try {
+            decoded = verify(authorization, 'secret');
+        } catch (error) {
+            next(error)
+        }
+        return (<any>decoded).username;
+    }  
+}
 
 export const getPacientes = async (req: Request, res: Response, next: NextFunction) => {
     // Paginacion
@@ -32,8 +43,10 @@ export const getPacientes = async (req: Request, res: Response, next: NextFuncti
             code: 200,
             success: true,
             message: 'OK',
-            data: pacientes,
-            totalRows: total,
+            data: {
+                row: pacientes,
+                totalRows: total,
+            },
         });
     } catch (error) {
         next(error);
@@ -44,7 +57,20 @@ export const getPacientes = async (req: Request, res: Response, next: NextFuncti
 export const createPaciente = async (req: Request, res: Response, next: NextFunction) => {
     const pacienteRepository = getRepository(Paciente);
     const codigoTipoIdentificacion: number = req.body.codigoTipoIdentificacion;
+    const numeroIdentificacion: string = req.body.numeroIdentificacion;
 
+    const pacientePorIdentificacion = await pacienteRepository.findOne({
+        where: { numeroIdentificacion: numeroIdentificacion }
+    });
+    if (pacientePorIdentificacion)
+        return res.status(400).json({
+            code: 400,
+            success: false,
+            message: "Ya existe un usuario con este número de identificación.",
+            errorData: []
+        });
+    
+    var username = getDecodedToken(req, next);
     try {
         const identificacion = await pacienteRepository.findOne({
             where: { codigoTipoIdentificacion: codigoTipoIdentificacion }
@@ -53,8 +79,7 @@ export const createPaciente = async (req: Request, res: Response, next: NextFunc
             return res.status(400).json({
                 code: 400,
                 success: false,
-                message: "El campo no es válido.",
-                // message: "No se ha encontrado el tipo de identificación.",
+                message: "No se ha encontrado el tipo de identificación.",
                 errorData: []
             });
         const idPaciente = await pacienteRepository
@@ -63,7 +88,9 @@ export const createPaciente = async (req: Request, res: Response, next: NextFunc
             .getRawOne();
         const paciente = new Paciente()
         pacienteRepository.merge(paciente, req.body);
-        paciente.idPaciente = idPaciente.id
+        paciente.idPaciente = idPaciente.id;
+        paciente.usuarioIngreso = username;
+        paciente.fechaIngreso = new Date();
 
         const nuevoPaciente = getRepository(Paciente).create(paciente);
         const result = await getRepository(Paciente).save(nuevoPaciente);
@@ -106,16 +133,7 @@ export const getPaciente = async (req: Request, res: Response, next: NextFunctio
 
 
 export const updatePaciente = async (req: Request, res: Response, next: NextFunction) => {
-    var codigo_usuario;
-    if (req.headers && req.headers.authorization) {
-        var authorization = req.headers.authorization.split(' ')[1], decoded;
-        try {
-            decoded = verify(authorization, 'secret');
-        } catch (error) {
-            next(error);
-        }
-        codigo_usuario = (<any>decoded).codigoUsuario;
-    }   
+    var username = getDecodedToken(req, next);   
 
     const numeroIdentificacion = req.body.numeroIdentificacion;
     const codigoIdentificacion = req.body.codigoTipoIdentificacion;
@@ -123,8 +141,7 @@ export const updatePaciente = async (req: Request, res: Response, next: NextFunc
         return res.status(400).json({
             code: 400,
             success: false,
-            message: "El campo no es válido.",
-            // message: "No es posible modificar los campos de número y código de identificación.",
+            message: "No es posible modificar los campos de número y código de identificación.",
             errorData: []
         });
     try {
@@ -132,7 +149,7 @@ export const updatePaciente = async (req: Request, res: Response, next: NextFunc
         if (paciente) {
             getRepository(Paciente).merge(paciente, req.body);
             paciente.fechaModificacion = new Date();
-            paciente.usuarioModificacion = String(codigo_usuario);
+            paciente.usuarioModificacion = username;
             const result = await getRepository(Paciente).save(paciente);
             return res.status(200).json({
                 code: 200,
@@ -154,23 +171,14 @@ export const updatePaciente = async (req: Request, res: Response, next: NextFunc
 }
 
 export const deletePaciente = async (req: Request, res: Response, next: NextFunction) => {
-    var codigo_usuario;
-    if (req.headers && req.headers.authorization) {
-        var authorization = req.headers.authorization.split(' ')[1], decoded;
-        try {
-            decoded = verify(authorization, 'secret');
-        } catch (error) {
-            next(error);
-        }
-        codigo_usuario = (<any>decoded).codigoUsuario;
-    }
+    var username = getDecodedToken(req, next);
 
     try {
         const paciente = await getRepository(Paciente).findOne(req.params.idPaciente);
         if (paciente) {
             paciente.estado = 'N';
             paciente.fechaModificacion = new Date();
-            paciente.usuarioModificacion = String(codigo_usuario);
+            paciente.usuarioModificacion = username;
             const result = await getRepository(Paciente).save(paciente);
             return res.status(200).json({
                 code: 200,

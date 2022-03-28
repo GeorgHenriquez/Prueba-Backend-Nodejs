@@ -11,7 +11,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         });
         if (usuario && usuario.userPassword === req.body.password){
             const token = sign(
-                { codigoUsuario: usuario.codigoUsuario },
+                { username: usuario.username },
                 'secret'
             );
             res.status(200).json({
